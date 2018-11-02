@@ -45,7 +45,7 @@ namespace ReentrantInterception.Interceptors
             if (invocation.ReturnValue is Task returnedTask)
             {
                 var returnedTaskType = returnedTask.GetType();
-                if(returnedTaskType.IsGenericType)
+                if(returnedTaskType.IsGenericType) //if it's generic, then it's going to have a return value
                 {
                     invocation.ReturnValue = WatchForResultAsync(returnedTask, returnedTaskType, invocation, invocationContext);
                 }
