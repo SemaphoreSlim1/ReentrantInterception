@@ -52,10 +52,18 @@ namespace ReentrantInterception
             var builder = new ContainerBuilder();
             builder.RegisterType<ConsoleInterceptor>().AsSelf();
 
+            //----
+            //Pay special attention to what's going on here.
+            //----
+            //we're registering our target business class on this line, with our (non-retrying) interceptors,
+            //and then naming the registration so that it won't be resolved unless specifically requested by name
             builder.RegisterType<FirstTimeFailBusinessClass>().Named<IBusinessClass>("Intercepted")
                    .EnableInterfaceInterceptors()
                    .InterceptedBy(typeof(ConsoleInterceptor));
 
+            //Here, we're registering the wrapper class, that also conforms to the interface
+            //and it's resolving the named version (with the interceptors) for internal use.
+            //Since this version is NOT named/keyed, this will be the version that resolvers recieve.
             builder.Register(c => new PollyBusinessClass(c.ResolveNamed<IBusinessClass>("Intercepted")))
                    .As<IBusinessClass>();
 

@@ -15,6 +15,9 @@ namespace ReentrantInterception
         Task<object> FetchSomethingAsync();
     }
 
+    /// <summary>
+    /// Simple business class that does business stuff
+    /// </summary>
     public class SimpleBusinessClass : IBusinessClass
     {
         protected void ThrowException()
@@ -46,9 +49,11 @@ namespace ReentrantInterception
             await Task.Delay(TimeSpan.FromSeconds(5));
             return FetchSomething();
         }
-
     }
 
+    /// <summary>
+    /// Provides an implementation of IBusinessClass that throws an exception the first time any method is executed
+    /// </summary>
     public class FirstTimeFailBusinessClass : SimpleBusinessClass
     {
         private int InvokeCount = 0;
