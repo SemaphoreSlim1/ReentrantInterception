@@ -1,5 +1,5 @@
 # ReentrantInterception
-This repo explores Autofac interceptors that repeatedly call invocation targets until they succeed
+This repo explores combining polly retry policies with Autofac interceptors to repeatedly call invocation targets until they succeed
 
 Autofac, like many containers, allows for aspect-oriented programming in the form of interceptors.
 
