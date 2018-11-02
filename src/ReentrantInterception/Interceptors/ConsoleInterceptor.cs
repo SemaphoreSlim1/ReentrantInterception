@@ -19,14 +19,12 @@ namespace ReentrantInterception.Interceptors
         {
             var methodName = invocation.Method.Name;
             Console.WriteLine($"Successfully executed {methodName}");
-            Console.WriteLine();
         }
 
         protected override void PostError(IInvocation invocation, Exception ex, IDictionary<string, object> invocationContext)
         {
             var methodName = invocation.Method.Name;
             Console.WriteLine($"Failure during execution of {methodName} : {ex.Message}");
-            Console.WriteLine();
         }
     }
 }
