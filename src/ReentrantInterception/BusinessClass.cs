@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Autofac.Features.AttributeFilters;
+using Polly;
+using Polly.Retry;
 
 namespace ReentrantInterception
 {
@@ -88,6 +91,58 @@ namespace ReentrantInterception
             }
 
             return base.FetchSomethingAsync();
+        }
+    }
+
+    public class PollyBusinessClass : IBusinessClass
+    {
+        private readonly IBusinessClass _target;
+
+        public PollyBusinessClass(IBusinessClass target)
+        {
+            _target = target;
+        }
+
+        public object FetchSomething()
+        {
+            var policy = CreateRetryPolicy();
+            var result = policy.ExecuteAndCapture(() => _target.FetchSomething());
+            return result.Result;
+        }
+
+        public async Task<object> FetchSomethingAsync()
+        {
+            var policy = CreateRetryPolicy(true);
+            var result = await policy.ExecuteAndCaptureAsync(() => _target.FetchSomethingAsync());
+
+            return result.Result;
+        }
+
+        public void SomethingImportant()
+        {
+            var policy = CreateRetryPolicy();
+            policy.Execute(() => _target.SomethingImportant());
+        }
+
+        public Task SomethingImportantAsync()
+        {
+            var policy = CreateRetryPolicy(true);
+            return policy.ExecuteAsync(() => _target.SomethingImportantAsync());
+        }
+
+        private static RetryPolicy CreateRetryPolicy(bool asyncPolicy = false)
+        {
+            var builder = Policy.Handle<CustomException>()
+                                .Or<OtherCustomException>();
+
+            if (asyncPolicy)
+            {
+                return builder.RetryForeverAsync(ex => Console.WriteLine($"{Environment.NewLine}Experienced failure. Retrying.{Environment.NewLine}"));
+            }
+            else
+            {
+                return builder.RetryForever(ex => Console.WriteLine($"{Environment.NewLine}Experienced failure. Retrying.{Environment.NewLine}"));
+            }
         }
     }
 }

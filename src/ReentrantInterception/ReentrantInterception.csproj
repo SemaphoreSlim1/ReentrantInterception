@@ -22,5 +22,6 @@
   <ItemGroup>
     <Compile Remove="Interceptors\MonkeyWrenchRetryInterceptor.cs" />
     <Compile Remove="Interceptors\TwiceInterceptor.cs" />
+    <Compile Remove="DirtyInterceptorTest.cs" />
   </ItemGroup>
 </Project>

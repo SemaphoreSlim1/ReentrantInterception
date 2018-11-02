@@ -52,9 +52,12 @@ namespace ReentrantInterception
             var builder = new ContainerBuilder();
             builder.RegisterType<ConsoleInterceptor>().AsSelf();
 
-            builder.RegisterType<FirstTimeFailBusinessClass>().As<IBusinessClass>()
+            builder.RegisterType<FirstTimeFailBusinessClass>().Named<IBusinessClass>("Intercepted")
                    .EnableInterfaceInterceptors()
                    .InterceptedBy(typeof(ConsoleInterceptor));
+
+            builder.Register(c => new PollyBusinessClass(c.ResolveNamed<IBusinessClass>("Intercepted")))
+                   .As<IBusinessClass>();
 
             var container = builder.Build();
 
@@ -63,55 +66,32 @@ namespace ReentrantInterception
             return businessClass;
         }
 
-        private static RetryPolicy CreateRetryPolicy(bool asyncPolicy = false)
-        {
-            var builder = Policy.Handle<CustomException>()
-                                .Or<OtherCustomException>();
-
-            if(asyncPolicy)
-            {
-                return builder.RetryForeverAsync(ex => Console.WriteLine($"{Environment.NewLine}Experienced failure. Retrying.{Environment.NewLine}"));
-            }
-            else
-            {
-                return builder.RetryForever(ex => Console.WriteLine($"{Environment.NewLine}Experienced failure. Retrying.{Environment.NewLine}"));
-            }
-        }
-
         private static void Sync_Void()
         {
             var businessClass = CreateBusinessClass();
-            var retryPolicy = CreateRetryPolicy();
-
-            retryPolicy.Execute(businessClass.SomethingImportant);
+            businessClass.SomethingImportant();
         }
 
         private static void Sync_Value()
         {
             var businessClass = CreateBusinessClass();
-            var retryPolicy = CreateRetryPolicy();
+            var result = businessClass.FetchSomething();
 
-            var result = retryPolicy.ExecuteAndCapture(businessClass.FetchSomething);
-
-            Console.WriteLine($"Captured result: {result.Result}");
+            Console.WriteLine($"Captured result: {result}");
         }
 
         private static async Task Async_Void()
         {
             var businessClass = CreateBusinessClass();
-            var retryPolicy = CreateRetryPolicy(true);
-
-            await retryPolicy.ExecuteAsync(businessClass.SomethingImportantAsync);
+            await businessClass.SomethingImportantAsync();
         }
 
         private static async Task Async_Value()
         {
             var businessClass = CreateBusinessClass();
-            var retryPolicy = CreateRetryPolicy(true);
+            var result = await businessClass.FetchSomethingAsync();
 
-            var result = await retryPolicy.ExecuteAndCaptureAsync(businessClass.FetchSomethingAsync);
-
-            Console.WriteLine($"Captured result: {result.Result}");
+            Console.WriteLine($"Captured result: {result}");
         }
     }
 }
