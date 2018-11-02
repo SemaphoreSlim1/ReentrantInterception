@@ -6,57 +6,88 @@ namespace ReentrantInterception
     public interface IBusinessClass
     {
         void SomethingImportant();
+        object FetchSomething();
+
         Task SomethingImportantAsync();
+        Task<object> FetchSomethingAsync();
     }
 
-    public abstract class BusinessClassBase
+    public class SimpleBusinessClass : IBusinessClass
     {
-        protected void ThrowMonkeyWrench()
+        protected void ThrowException()
         {
-            Console.WriteLine("Throwing a monkey wrench");
-            throw new MonkeyWrench();
+            Console.WriteLine("Throwing an exception");
+            throw new CustomException();
         }
 
-        protected void DoStuff()
+        public virtual void SomethingImportant()
         {
             Console.WriteLine("Really. Important. Stuff.");
         }
-    }
 
-    public class SimpleBusinessClass : BusinessClassBase, IBusinessClass
-    {
-        public void SomethingImportant()
+        public virtual object FetchSomething()
         {
-            DoStuff();
+            Console.WriteLine("Fetching Something");
+            return 1;
         }
 
-        public async Task SomethingImportantAsync()
+        public virtual async Task SomethingImportantAsync()
         {
             //simulate a long running task or wire call
             await Task.Delay(TimeSpan.FromSeconds(5));
             SomethingImportant();
         }
+
+        public virtual async Task<object> FetchSomethingAsync()
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            return FetchSomething();
+        }
+
     }
 
-    public class FirstTimeFailBusinessClass : BusinessClassBase, IBusinessClass
+    public class FirstTimeFailBusinessClass : SimpleBusinessClass
     {
         private int InvokeCount = 0;
 
-        public void SomethingImportant()
+        public override void SomethingImportant()
         {
             if (++InvokeCount < 2)
             {
-                ThrowMonkeyWrench();
+                ThrowException();
             }
 
-            DoStuff();
+            base.SomethingImportant();
         }
 
-        public async Task SomethingImportantAsync()
+        public override object FetchSomething()
         {
-            //simulate a long running task or wire call
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            SomethingImportant();
+            if (++InvokeCount < 2)
+            {
+                ThrowException();
+            }
+
+            return base.FetchSomething();
+        }
+
+        public override Task SomethingImportantAsync()
+        {
+            if (++InvokeCount < 2)
+            {
+                ThrowException();
+            }
+
+            return base.SomethingImportantAsync();
+        }
+
+        public override Task<object> FetchSomethingAsync()
+        {
+            if (++InvokeCount < 2)
+            {
+                ThrowException();
+            }
+
+            return base.FetchSomethingAsync();
         }
     }
 }

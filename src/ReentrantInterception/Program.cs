@@ -8,14 +8,30 @@ namespace ReentrantInterception
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
-            await ShowcaseAsyncRetryTwice();
+            ShowcaseConsoleInterceptor();
 
             Console.WriteLine("Done. Press Enter to exit.");
             Console.ReadLine();
         }
 
+        private static void ShowcaseConsoleInterceptor()
+        {
+            var builder = new ContainerBuilder();
+            builder.RegisterType<ConsoleInterceptor>().AsSelf();
+
+            builder.RegisterType<SimpleBusinessClass>().As<IBusinessClass>()
+                   .EnableInterfaceInterceptors()
+                   .InterceptedBy(typeof(ConsoleInterceptor));
+
+            var container = builder.Build();
+            var businessClass = container.Resolve<IBusinessClass>();
+
+            businessClass.SomethingImportant();
+        }
+
+        /*
         private static async Task ShowcaseAsyncRetryTwice()
         {
             var builder = new ContainerBuilder();
@@ -33,7 +49,9 @@ namespace ReentrantInterception
 
             await businessClass.SomethingImportantAsync();
         }
+        */
 
+        /*
         private static void ShowcaseRetryOnMonkeyWrench()
         {
             var builder = new ContainerBuilder();
@@ -59,7 +77,9 @@ namespace ReentrantInterception
                 Console.WriteLine($"Caught exception of type {ex.GetType()}");
             }
         }
+        */
 
+        /*
         private static void ShowcaseTwiceInterceptor()
         {
             var builder = new ContainerBuilder();
@@ -78,5 +98,6 @@ namespace ReentrantInterception
 
             businessClass.SomethingImportant();
         }
+        */
     }
 }

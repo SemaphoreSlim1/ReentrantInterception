@@ -11,49 +11,11 @@ namespace ReentrantInterception.Interceptors
     /// </summary>
     public abstract class InterceptorBase : IInterceptor
     {
+
         public void Intercept(IInvocation invocation)
         {
             var invocationContext = new Dictionary<string, object>();
 
-            DoIntercept(invocation, invocationContext);
-
-            AttemptRetry(invocation, invocationContext);
-        }
-
-        private async Task AttemptRetry(IInvocation invocation, IDictionary<string, object> invocationContext)
-        {
-            if(invocation.ReturnValue is Task task)
-            {
-                //I'm thinking this needs to be recursive
-                //but still working on how that looks like in an async model
-                await task;
-                while (GetRetry(invocationContext))
-                {
-                    DoIntercept(invocation, invocationContext);
-                    await (Task)invocation.ReturnValue;
-                }
-            }
-            else
-            {
-                while(GetRetry(invocationContext))
-                {
-                    DoIntercept(invocation, invocationContext);
-                }
-            }
-        }
-
-        private bool GetRetry(IDictionary<string, object> invocationContext)
-        {
-            if (invocationContext.TryGetValue("ShouldRetry", out var val))
-            {
-                return (bool)val;
-            }
-
-            return false;
-        }
-
-        private void DoIntercept(IInvocation invocation, IDictionary<string, object> invocationContext)
-        {
             //Pre might optimize us out of invocation, so honor that
             if (Pre(invocation, invocationContext) == false)
             { return; }
@@ -71,7 +33,7 @@ namespace ReentrantInterception.Interceptors
                 if (transformedException == ex)
                 { throw; } //preserve the call stack
 
-                if(transformedException != null)
+                if (transformedException != null)
                 { throw transformedException; }
 
                 return;
@@ -82,7 +44,15 @@ namespace ReentrantInterception.Interceptors
             //otherwise, we can invoke post right now.
             if (invocation.ReturnValue is Task returnedTask)
             {
-                invocation.ReturnValue = WatchForCompletionAsync(returnedTask, invocation, invocationContext);
+                var returnedTaskType = returnedTask.GetType();
+                if(returnedTaskType.IsGenericType)
+                {
+                    invocation.ReturnValue = WatchForResultAsync(returnedTask, returnedTaskType, invocation, invocationContext);
+                }
+                else
+                {
+                    invocation.ReturnValue = WatchForCompletionAsync(returnedTask, invocation, invocationContext);
+                }
             }
             else
             {
@@ -93,15 +63,14 @@ namespace ReentrantInterception.Interceptors
         /// <summary>
         /// Awaits execution of the task, and then invokes the post function once the task has completed.
         /// </summary>
-        /// <param name="methodExecution">The returned task from the target invocation</param>
         /// <param name="invocation">the target invocation</param>
         /// <param name="invocationContext">Data from the pre invocation</param>
         /// <returns>The task that the caller of the target invocation will now await upon</returns>
-        private async Task WatchForCompletionAsync(Task methodExecution, IInvocation invocation, IDictionary<string, object> invocationContext)
+        private async Task WatchForCompletionAsync(Task task, IInvocation invocation, IDictionary<string, object> invocationContext)
         {
             try
             {
-                await methodExecution;
+                await task;
             }
             catch(Exception ex)
             {
@@ -119,6 +88,41 @@ namespace ReentrantInterception.Interceptors
 
             PostSuccess(invocation, invocationContext);
         }
+
+        private async Task<object> WatchForResultAsync(Task task, Type taskType, IInvocation invocation, IDictionary<string, object> invocationContext)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                PostError(invocation, ex, invocationContext);
+                var transformedException = TransformException(ex, invocationContext);
+
+                if (transformedException == ex)
+                { throw; }
+
+                if (transformedException != null)
+                { throw transformedException; }
+
+                //at this point in the execution, we are suppressing the rethrow.
+                //return the default for the return type
+                var returnType = taskType.GetGenericParameterConstraints()[0];
+                return returnType.IsValueType ? Activator.CreateInstance(returnType) : null;
+            }
+
+            PostSuccess(invocation, invocationContext);
+
+            //we need to extract the return value since we awaited earlier
+            var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+            var resultValue = resultProperty.GetValue(task);
+            return resultValue;
+        }
+
+
+
+      
 
         /// <summary>
         /// The method executed prior to the target method
