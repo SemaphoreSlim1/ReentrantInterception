@@ -94,6 +94,13 @@ namespace ReentrantInterception
         }
     }
 
+    /// <summary>
+    /// Provides a poor-man's interception around a business class, applying a polly retry policy to the public methods
+    /// </summary>
+    /// <remarks>
+    /// Using a wrapper class like this is considered to be a poor-man's implementation of interception.
+    /// while this approach works, it's not scalable; use your judgement before using
+    /// </remarks>
     public class PollyBusinessClass : IBusinessClass
     {
         private readonly IBusinessClass _target;
