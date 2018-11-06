@@ -44,15 +44,7 @@ namespace ReentrantInterception.Interceptors
             //otherwise, we can invoke post right now.
             if (invocation.ReturnValue is Task returnedTask)
             {
-                var returnedTaskType = returnedTask.GetType();
-                if(returnedTaskType.IsGenericType) //if it's generic, then it's going to have a return value
-                {
-                    invocation.ReturnValue = WatchForResultAsync((dynamic)returnedTask, returnedTaskType, invocation, invocationContext);
-                }
-                else
-                {
-                    invocation.ReturnValue = WatchForCompletionAsync(returnedTask, invocation, invocationContext);
-                }
+                invocation.ReturnValue = FinishAsync((dynamic)returnedTask, invocation, invocationContext);
             }
             else
             {
@@ -66,18 +58,18 @@ namespace ReentrantInterception.Interceptors
         /// <param name="invocation">the target invocation</param>
         /// <param name="invocationContext">Data from the pre invocation</param>
         /// <returns>The task that the caller of the target invocation will now await upon</returns>
-        private async Task WatchForCompletionAsync(Task task, IInvocation invocation, IDictionary<string, object> invocationContext)
+        private async Task FinishAsync(Task task, IInvocation invocation, IDictionary<string, object> invocationContext)
         {
             try
             {
                 await task;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 PostError(invocation, ex, invocationContext);
                 var transformedException = TransformException(ex, invocationContext);
 
-                if(transformedException == ex)
+                if (transformedException == ex)
                 { throw; }
 
                 if (transformedException != null)
@@ -89,13 +81,13 @@ namespace ReentrantInterception.Interceptors
             PostSuccess(invocation, invocationContext);
         }
 
-        private async Task<T> WatchForResultAsync<T>(Task<T> task, Type taskType, IInvocation invocation, IDictionary<string, object> invocationContext)
+        private async Task<T> FinishAsync<T>(Task<T> task, IInvocation invocation, IDictionary<string, object> invocationContext)
         {
             var defaultT = typeof(T).IsValueType ? Activator.CreateInstance(typeof(T)) : null;
             var result = defaultT;
             try
             {
-               result = await task;
+                result = await task;
             }
             catch (Exception ex)
             {
@@ -120,7 +112,7 @@ namespace ReentrantInterception.Interceptors
 
 
 
-      
+
 
         /// <summary>
         /// The method executed prior to the target method

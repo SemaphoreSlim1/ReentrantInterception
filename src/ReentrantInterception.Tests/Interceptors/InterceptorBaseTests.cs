@@ -30,6 +30,11 @@ namespace ReentrantInterception.Tests.Interceptors
             return FetchSomethingAsyncInvocation();
         }
 
+        public Task<int> FetchSomethingSpecificAsync()
+        {
+            return FetchSomethingSpecificAsync();
+        }
+
         public void SomethingImportant()
         {
             SomethingImportantInvocation();
