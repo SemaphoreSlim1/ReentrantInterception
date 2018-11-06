@@ -18,7 +18,9 @@ namespace ReentrantInterception
 
             await ExecuteTestAsync("Async void", Async_Void);
 
-            await ExecuteTestAsync("Async with return value", Async_Value);
+            await ExecuteTestAsync("Async with reference return value", Async_Value);
+
+            await ExecuteTestAsync("Async with value return value type", Async_SpecificValue);
 
 
             Console.WriteLine("Done. Press Enter to exit.");
@@ -98,6 +100,14 @@ namespace ReentrantInterception
         {
             var businessClass = CreateBusinessClass();
             var result = await businessClass.FetchSomethingAsync();
+
+            Console.WriteLine($"Captured result: {result}");
+        }
+
+        private static async Task Async_SpecificValue()
+        {
+            var businessClass = CreateBusinessClass();
+            var result = await businessClass.FetchSomethingSpecificAsync();
 
             Console.WriteLine($"Captured result: {result}");
         }

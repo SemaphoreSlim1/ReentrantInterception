@@ -13,6 +13,8 @@ namespace ReentrantInterception
 
         Task SomethingImportantAsync();
         Task<object> FetchSomethingAsync();
+
+        Task<int> FetchSomethingSpecificAsync();
     }
 
     /// <summary>
@@ -48,6 +50,12 @@ namespace ReentrantInterception
         {
             await Task.Delay(TimeSpan.FromSeconds(5));
             return FetchSomething();
+        }
+
+        public virtual async Task<int> FetchSomethingSpecificAsync()
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            return (int)FetchSomething();
         }
     }
 
@@ -130,6 +138,14 @@ namespace ReentrantInterception
             return result.Result;
         }
 
+        public async Task<int> FetchSomethingSpecificAsync()
+        {
+            var policy = CreateRetryPolicy(true);
+            var result = await policy.ExecuteAndCaptureAsync(() => _target.FetchSomethingSpecificAsync());
+
+            return result.Result;
+        }
+
         public void SomethingImportant()
         {
             var policy = CreateRetryPolicy();
@@ -141,6 +157,7 @@ namespace ReentrantInterception
             var policy = CreateRetryPolicy(true);
             return policy.ExecuteAsync(() => _target.SomethingImportantAsync());
         }
+
 
         private static RetryPolicy CreateRetryPolicy(bool asyncPolicy = false)
         {

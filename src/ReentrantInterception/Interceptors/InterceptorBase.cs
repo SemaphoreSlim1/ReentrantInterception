@@ -47,7 +47,7 @@ namespace ReentrantInterception.Interceptors
                 var returnedTaskType = returnedTask.GetType();
                 if(returnedTaskType.IsGenericType) //if it's generic, then it's going to have a return value
                 {
-                    invocation.ReturnValue = WatchForResultAsync(returnedTask, returnedTaskType, invocation, invocationContext);
+                    invocation.ReturnValue = WatchForResultAsync((dynamic)returnedTask, returnedTaskType, invocation, invocationContext);
                 }
                 else
                 {
@@ -89,11 +89,13 @@ namespace ReentrantInterception.Interceptors
             PostSuccess(invocation, invocationContext);
         }
 
-        private async Task<object> WatchForResultAsync(Task task, Type taskType, IInvocation invocation, IDictionary<string, object> invocationContext)
+        private async Task<T> WatchForResultAsync<T>(Task<T> task, Type taskType, IInvocation invocation, IDictionary<string, object> invocationContext)
         {
+            var defaultT = typeof(T).IsValueType ? Activator.CreateInstance(typeof(T)) : null;
+            var result = defaultT;
             try
             {
-                await task;
+               result = await task;
             }
             catch (Exception ex)
             {
@@ -108,16 +110,12 @@ namespace ReentrantInterception.Interceptors
 
                 //at this point in the execution, we are suppressing the rethrow.
                 //return the default for the return type
-                var returnType = taskType.GetGenericParameterConstraints()[0];
-                return returnType.IsValueType ? Activator.CreateInstance(returnType) : null;
+                return (T)defaultT;
             }
 
             PostSuccess(invocation, invocationContext);
 
-            //we need to extract the return value since we awaited earlier
-            var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
-            var resultValue = resultProperty.GetValue(task);
-            return resultValue;
+            return (T)result;
         }
 
 
